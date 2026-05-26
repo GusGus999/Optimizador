@@ -1,0 +1,102 @@
+/* --- Contenedor Principal (Fondo Gradiente) --- */
+.main-container {
+    -fx-background-color: linear-gradient(to bottom right, #2abebb, #072e33);
+}
+
+/* --- Tipografías y Títulos --- */
+.title-label {
+    -fx-font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    -fx-font-weight: bold;
+    -fx-font-size: 32px;
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 6, 0, 0, 2);
+}
+
+.section-label {
+    -fx-font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-text-fill: #a3f2f0;
+}
+
+/* --- Botón Principal (Optimizar) --- */
+.btn-primary {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #0c4c52;
+    -fx-background-radius: 30;
+    -fx-padding: 12 35 12 35;
+    -fx-font-family: 'Segoe UI', sans-serif;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4);
+    -fx-transition: all 0.3s ease-in-out;
+}
+
+/* Efecto Hover para el Botón Principal */
+.btn-primary:hover {
+    -fx-background-color: #e0f7f6;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 12, 0, 0, 5);
+}
+
+/* --- Botón Secundario (Limpiar) --- */
+.btn-secondary {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ffffff;
+    -fx-border-radius: 30;
+    -fx-border-width: 2;
+    -fx-padding: 10 25 10 25;
+    -fx-font-family: 'Segoe UI', sans-serif;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-cursor: hand;
+    -fx-transition: all 0.3s ease;
+}
+
+/* Efecto Hover para el Botón Secundario */
+.btn-secondary:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.15);
+    -fx-border-color: #a3f2f0;
+    -fx-text-fill: #a3f2f0;
+}
+
+/* --- Áreas de Texto (Glassmorphism de Código) --- */
+.custom-text-area {
+    -fx-background-color: #0b383d;
+    -fx-control-inner-background: #0b383d; /* Fondo interior */
+    -fx-font-family: 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 16px;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: #26c6da;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.25), 15, 0, 0, 8);
+}
+
+/* Color del texto del editor de entrada */
+#txa_codigo .content {
+    -fx-text-fill: #ffffff;
+    -fx-padding: 10;
+}
+
+/* Color del texto del editor de salida (Cyan neón para el resultado) */
+#txa_resultado .content {
+    -fx-text-fill: #84ffff;
+    -fx-padding: 10;
+}
+
+/* --- Personalización de las Barras de Desplazamiento (Scrollbars) --- */
+.custom-text-area .scroll-bar:vertical,
+.custom-text-area .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.custom-text-area .scroll-bar .thumb {
+    -fx-background-color: rgba(38, 198, 218, 0.4);
+    -fx-background-radius: 10;
+}
+
+.custom-text-area .scroll-bar .thumb:hover {
+    -fx-background-color: rgba(38, 198, 218, 0.7);
+}

@@ -29,47 +29,68 @@ public class HelloController {
         if (codigo == null || codigo.trim().isEmpty()) return;
 
         List<Instruccion> instrucciones = parsear(codigo);
+        boolean huboCambios = true;
 
-        // Aplicación secuencial de las optimizaciones locales según el documento:
-        instrucciones = eliminarSubexpresionesComunes(instrucciones); // [cite: 99, 100]
-        instrucciones = propagarCopias(instrucciones);                // [cite: 105, 106]
-        instrucciones = eliminarCodigoMuerto(instrucciones);          // [cite: 114, 115]
-        instrucciones = calculoPrevioConstantes(instrucciones);       // [cite: 132, 133]
-        instrucciones = transformacionesAlgebraicas(instrucciones);   // [cite: 146, 147]
-        instrucciones = reduccionIntensidad(instrucciones);           // [cite: 162, 163]
-        instrucciones = eliminarCodigoMuerto(instrucciones);          // Limpieza final de temporales sin uso
+        // BUCLE MAESTRO: Da vueltas por TODAS las optimizaciones hasta que el código ya no cambie nada.
+        // Si la pasada 5 habilita una nueva optimización de la pasada 2, el bucle se encargará de atraparla.
+        while (huboCambios) {
+            String estadoAnterior = obtenerCodigoTexto(instrucciones);
+
+            instrucciones = calculoPrevioConstantes(instrucciones);
+            instrucciones = transformacionesAlgebraicas(instrucciones);
+            instrucciones = reduccionIntensidad(instrucciones);
+            instrucciones = eliminarSubexpresionesComunes(instrucciones);
+            instrucciones = propagarCopias(instrucciones);
+            instrucciones = eliminarCodigoMuerto(instrucciones);
+
+            String estadoNuevo = obtenerCodigoTexto(instrucciones);
+
+            // Si hubo el más mínimo cambio, se repite el ciclo completo
+            huboCambios = !estadoAnterior.equals(estadoNuevo);
+        }
 
         mostrarResultado(instrucciones);
     }
 
+    // Parseador mejorado: Ahora detecta arreglos como a[t2]
     private List<Instruccion> parsear(String codigo) {
         List<Instruccion> lista = new ArrayList<>();
         String[] lineas = codigo.split("\n");
 
-        // Expresión regular para capturar código de 3 direcciones (ej. t1 = a + b o t1 = 2)
-        // Ignora los símbolos '$' por si se copia directamente del PDF [cite: 102]
-        Pattern pattern = Pattern.compile("^\\$?([a-zA-Z0-9_]+)\\s*=\\s*\\$?([a-zA-Z0-9_\\.]+)\\s*(?:([\\+\\-\\*\\/\\^])\\s*\\$?([a-zA-Z0-9_\\.]+))?\\$?$");
+        // Reglas Regex
+        Pattern pBinaria = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_\\.]+)\\s*([\\+\\-\\*\\/\\^])\\s*([a-zA-Z0-9_\\.]+)$");
+        Pattern pArreglo = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_]+)\\s*\\[\\s*([a-zA-Z0-9_]+)\\s*\\]$");
+        Pattern pAsignacion = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_\\.]+)$");
 
         for (String linea : lineas) {
             linea = linea.trim();
             if (linea.isEmpty()) continue;
 
-            Matcher m = pattern.matcher(linea);
-            if (m.matches()) {
-                lista.add(new Instruccion(m.group(1), m.group(2), m.group(3), m.group(4)));
+            Matcher mBin = pBinaria.matcher(linea);
+            Matcher mArr = pArreglo.matcher(linea);
+            Matcher mAsig = pAsignacion.matcher(linea);
+
+            if (mBin.matches()) {
+                lista.add(new Instruccion(mBin.group(1), mBin.group(2), mBin.group(3), mBin.group(4)));
+            } else if (mArr.matches()) {
+                // Truco: Guardamos los arreglos usando "[]" como si fuera un operador (+, *, etc)
+                // arg1 = nombre del arreglo, arg2 = el índice (para protegerlo de la muerte)
+                lista.add(new Instruccion(mArr.group(1), mArr.group(2), "[]", mArr.group(3)));
+            } else if (mAsig.matches()) {
+                lista.add(new Instruccion(mAsig.group(1), mAsig.group(2), null, null));
             } else {
-                lista.add(new Instruccion(linea)); // Si no es una instrucción estándar, se pasa tal cual
+                lista.add(new Instruccion(linea));
             }
         }
         return lista;
     }
 
-    // 7.8.1 Eliminación de subexpresiones comunes [cite: 99]
+    // 7.8.1 Eliminación de subexpresiones comunes (Incluye arreglos idénticos)
     private List<Instruccion> eliminarSubexpresionesComunes(List<Instruccion> instrucciones) {
         Map<String, String> expresiones = new HashMap<>();
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
-                String expr = inst.arg1 + inst.op + inst.arg2;
+                String expr = inst.arg1 + inst.op + inst.arg2; // Ej. "a[]t2" o "b*m"
                 String exprConmutativa = inst.arg2 + inst.op + inst.arg1;
 
                 if (expresiones.containsKey(expr)) {
@@ -88,7 +109,7 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.2 Propagación de copias [cite: 105]
+    // 7.8.2 Propagación de copias
     private List<Instruccion> propagarCopias(List<Instruccion> instrucciones) {
         Map<String, String> copias = new HashMap<>();
         for (Instruccion inst : instrucciones) {
@@ -98,7 +119,6 @@ public class HelloController {
             if (inst.arg2 != null && copias.containsKey(inst.arg2)) {
                 inst.arg2 = copias.get(inst.arg2);
             }
-            // Registrar asignación directa (x = y) o constante (t1 = 2)
             if (inst.op == null && inst.arg1 != null && inst.res != null) {
                 copias.put(inst.res, inst.arg1);
             }
@@ -106,32 +126,38 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.3 Eliminación de código muerto [cite: 114]
+    // 7.8.3 Eliminación de código muerto (ESTRICTA, de abajo hacia arriba)
     private List<Instruccion> eliminarCodigoMuerto(List<Instruccion> instrucciones) {
         boolean cambio = true;
         while (cambio) {
             cambio = false;
             Set<String> usadas = new HashSet<>();
 
-            for (Instruccion inst : instrucciones) {
-                if (inst.arg1 != null && !isNumeric(inst.arg1)) usadas.add(inst.arg1);
-                if (inst.arg2 != null && !isNumeric(inst.arg2)) usadas.add(inst.arg2);
+            if (!instrucciones.isEmpty()) {
+                Instruccion ultima = instrucciones.get(instrucciones.size() - 1);
+                if (ultima.res != null) usadas.add(ultima.res);
+                if (ultima.textoOriginal != null) usadas.add(ultima.textoOriginal.trim());
             }
 
-            Iterator<Instruccion> it = instrucciones.iterator();
-            while (it.hasNext()) {
-                Instruccion inst = it.next();
-                // Eliminamos temporales (variables que inician con 't') que nunca son referenciados [cite: 115, 116]
-                if (inst.res != null && inst.res.startsWith("t") && !usadas.contains(inst.res)) {
-                    it.remove();
+            for (int i = instrucciones.size() - 1; i >= 0; i--) {
+                Instruccion inst = instrucciones.get(i);
+
+                if (inst.textoOriginal != null) continue;
+
+                if (inst.res != null && !usadas.contains(inst.res)) {
+                    instrucciones.remove(i);
                     cambio = true;
+                    continue;
                 }
+
+                if (inst.arg1 != null && !isNumeric(inst.arg1)) usadas.add(inst.arg1);
+                if (inst.arg2 != null && !isNumeric(inst.arg2)) usadas.add(inst.arg2);
             }
         }
         return instrucciones;
     }
 
-    // 7.8.4 Cálculo previo de constantes [cite: 132]
+    // 7.8.4 Cálculo previo de constantes
     private List<Instruccion> calculoPrevioConstantes(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null && isNumeric(inst.arg1) && isNumeric(inst.arg2)) {
@@ -148,11 +174,10 @@ public class HelloController {
                         if (v2 != 0) res = v1 / v2;
                         else evaluado = false;
                         break;
-                    default: evaluado = false;
+                    default: evaluado = false; // Ignora los arreglos "[]"
                 }
 
                 if (evaluado) {
-                    // Truncar a entero si es exacto (ej. 4-2=2) [cite: 135]
                     if (res == Math.floor(res)) {
                         inst.arg1 = String.valueOf((int) res);
                     } else {
@@ -166,41 +191,44 @@ public class HelloController {
         return instrucciones;
     }
 
-    // Transformaciones algebraicas [cite: 146]
+    // Transformaciones algebraicas expandidas
     private List<Instruccion> transformacionesAlgebraicas(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
                 if (inst.op.equals("+")) {
-                    if ("0".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; } // 0+x=x [cite: 148]
-                    else if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; } // x+0=x [cite: 148]
+                    if ("0".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; }
+                    else if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
                 } else if (inst.op.equals("-")) {
-                    if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; } // x-0=x [cite: 148]
-                    else if (inst.arg1.equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
+                    if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
+                    else if (inst.arg1.equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; } // x - x = 0
                 } else if (inst.op.equals("*")) {
-                    if ("1".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; } // 1*x=x [cite: 149]
-                    else if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; } // x*1=x [cite: 149]
+                    if ("1".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; }
+                    else if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
                     else if ("0".equals(inst.arg1) || "0".equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
                 } else if (inst.op.equals("/")) {
-                    if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; } // x/1=x [cite: 149]
+                    if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
+                    else if (inst.arg1.equals(inst.arg2) && !inst.arg1.equals("0")) { // m / m = 1
+                        inst.arg1 = "1"; inst.op = null; inst.arg2 = null;
+                    }
                 }
             }
         }
         return instrucciones;
     }
 
-    // 7.8.4 Reducción de intensidad [cite: 162]
+    // Reducción de intensidad
     private List<Instruccion> reduccionIntensidad(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
                 if (inst.op.equals("*")) {
-                    if ("2".equals(inst.arg2)) { // x*2 -> x+x [cite: 167]
+                    if ("2".equals(inst.arg2)) { // x*2 -> x+x
                         inst.op = "+";
                         inst.arg2 = inst.arg1;
-                    } else if ("2".equals(inst.arg1)) { // 2*x -> x+x [cite: 167]
+                    } else if ("2".equals(inst.arg1)) { // 2*x -> x+x
                         inst.arg1 = inst.arg2;
                         inst.op = "+";
                     }
-                } else if (inst.op.equals("^")) { // x^2 -> x*x [cite: 167]
+                } else if (inst.op.equals("^")) { // a^2 -> a*a
                     if ("2".equals(inst.arg2)) {
                         inst.op = "*";
                         inst.arg2 = inst.arg1;
@@ -211,12 +239,16 @@ public class HelloController {
         return instrucciones;
     }
 
-    private void mostrarResultado(List<Instruccion> instrucciones) {
+    private String obtenerCodigoTexto(List<Instruccion> instrucciones) {
         StringBuilder sb = new StringBuilder();
         for (Instruccion inst : instrucciones) {
             sb.append(inst.toString()).append("\n");
         }
-        txa_resultado.setText(sb.toString());
+        return sb.toString();
+    }
+
+    private void mostrarResultado(List<Instruccion> instrucciones) {
+        txa_resultado.setText(obtenerCodigoTexto(instrucciones));
     }
 
     private boolean isNumeric(String str) {
@@ -229,7 +261,7 @@ public class HelloController {
         }
     }
 
-    // Clase auxiliar para gestionar internamente el código de 3 direcciones
+    // Clase auxiliar para gestionar el código de 3 direcciones
     class Instruccion {
         String res;
         String arg1;
@@ -251,8 +283,13 @@ public class HelloController {
         @Override
         public String toString() {
             if (textoOriginal != null) return textoOriginal;
-            if (op == null) return res + " = " + arg1;
-            return res + " = " + arg1 + " " + op + " " + arg2;
+
+            // Reconstrucción especial si es un arreglo
+            if ("[]".equals(op)) return res + "=" + arg1 + "[" + arg2 + "]";
+
+            // Reconstrucción normal
+            if (op == null) return res + "=" + arg1;
+            return res + "=" + arg1 + op + arg2;
         }
     }
 }
