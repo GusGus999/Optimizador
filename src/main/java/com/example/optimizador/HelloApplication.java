@@ -17,7 +17,7 @@ public class HelloApplication extends Application {
         String css = HelloApplication.class.getResource("style.css").toExternalForm();
         scene.getStylesheets().add(css);
 
-        stage.setTitle("Optimización Local - Lenguajes y Autómatas II");
+        stage.setTitle("Optimización - Lenguajes y Autómatas II");
         stage.setScene(scene);
         stage.show();
     }

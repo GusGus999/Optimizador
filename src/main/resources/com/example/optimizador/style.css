@@ -1,3 +1,7 @@
+/* =========================================================================
+   ESTILOS GENERALES
+   ========================================================================= */
+
 /* --- Contenedor Principal (Fondo Gradiente) --- */
 .main-container {
     -fx-background-color: linear-gradient(to bottom right, #2abebb, #072e33);
@@ -18,6 +22,10 @@
     -fx-font-size: 16px;
     -fx-text-fill: #a3f2f0;
 }
+
+/* =========================================================================
+   BOTONES
+   ========================================================================= */
 
 /* --- Botón Principal (Optimizar) --- */
 .btn-primary {
@@ -61,42 +69,58 @@
     -fx-text-fill: #a3f2f0;
 }
 
-/* --- Áreas de Texto (Glassmorphism de Código) --- */
+/* =========================================================================
+   ÁREAS DE TEXTO (FONDO BLANCO Y BORDES REDONDOS PERFECTOS)
+   ========================================================================= */
+
 .custom-text-area {
-    -fx-background-color: #0b383d;
-    -fx-control-inner-background: #0b383d; /* Fondo interior */
+    -fx-background-color: #e6f9f9; /* Regresamos al fondo blanco original */
+    -fx-background-radius: 25;     /* Curvatura del fondo */
+    -fx-border-radius: 25;         /* Curvatura del borde */
+    -fx-border-color: #26c6da;     /* Borde cyan */
+    -fx-border-width: 2;
+
+    /* Sombra más suave para el fondo blanco */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 10, 0, 0, 5);
+
     -fx-font-family: 'Consolas', 'Courier New', monospace;
     -fx-font-size: 16px;
-    -fx-background-radius: 18;
-    -fx-border-radius: 18;
-    -fx-border-color: #26c6da;
-    -fx-border-width: 1.5;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.25), 15, 0, 0, 8);
 }
 
-/* Color del texto del editor de entrada */
-#txa_codigo .content {
-    -fx-text-fill: #ffffff;
-    -fx-padding: 10;
-}
-
-/* Color del texto del editor de salida (Cyan neón para el resultado) */
-#txa_resultado .content {
-    -fx-text-fill: #84ffff;
-    -fx-padding: 10;
-}
-
-/* --- Personalización de las Barras de Desplazamiento (Scrollbars) --- */
-.custom-text-area .scroll-bar:vertical,
-.custom-text-area .scroll-bar:horizontal {
+/* TRUCO CLAVE: Hacer transparentes TODAS las capas internas cuadradas
+   para que no tapen nuestras esquinas redondas */
+.custom-text-area .scroll-pane,
+.custom-text-area .scroll-pane .viewport,
+.custom-text-area .scroll-pane .content {
     -fx-background-color: transparent;
 }
 
+/* Margen interno para que el texto no choque con la curva del borde */
+.custom-text-area .scroll-pane {
+    -fx-padding: 15;
+}
+
+/* Color del texto: oscuro para que contraste bien con el fondo blanco */
+#txa_codigo .content,
+#txa_resultado .content {
+    -fx-text-fill: #333333;
+}
+
+/* =========================================================================
+   BARRAS DE DESPLAZAMIENTO (SCROLLBARS CLARAS)
+   ========================================================================= */
+
+.custom-text-area .scroll-bar:vertical,
+.custom-text-area .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-padding: 5;
+}
+
 .custom-text-area .scroll-bar .thumb {
-    -fx-background-color: rgba(38, 198, 218, 0.4);
+    -fx-background-color: #cfd8dc; /* Gris suave que combina con el blanco */
     -fx-background-radius: 10;
 }
 
 .custom-text-area .scroll-bar .thumb:hover {
-    -fx-background-color: rgba(38, 198, 218, 0.7);
+    -fx-background-color: #b0bec5; /* Un gris un poco más oscuro al pasar el mouse */
 }

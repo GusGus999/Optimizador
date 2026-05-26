@@ -31,8 +31,7 @@ public class HelloController {
         List<Instruccion> instrucciones = parsear(codigo);
         boolean huboCambios = true;
 
-        // BUCLE MAESTRO: Da vueltas por TODAS las optimizaciones hasta que el código ya no cambie nada.
-        // Si la pasada 5 habilita una nueva optimización de la pasada 2, el bucle se encargará de atraparla.
+        // BUCLE MAESTRO: Da vueltas por TODAS las optimizaciones hasta que el código ya no cambie
         while (huboCambios) {
             String estadoAnterior = obtenerCodigoTexto(instrucciones);
 
@@ -44,20 +43,16 @@ public class HelloController {
             instrucciones = eliminarCodigoMuerto(instrucciones);
 
             String estadoNuevo = obtenerCodigoTexto(instrucciones);
-
-            // Si hubo el más mínimo cambio, se repite el ciclo completo
             huboCambios = !estadoAnterior.equals(estadoNuevo);
         }
 
         mostrarResultado(instrucciones);
     }
 
-    // Parseador mejorado: Ahora detecta arreglos como a[t2]
     private List<Instruccion> parsear(String codigo) {
         List<Instruccion> lista = new ArrayList<>();
         String[] lineas = codigo.split("\n");
 
-        // Reglas Regex
         Pattern pBinaria = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_\\.]+)\\s*([\\+\\-\\*\\/\\^])\\s*([a-zA-Z0-9_\\.]+)$");
         Pattern pArreglo = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_]+)\\s*\\[\\s*([a-zA-Z0-9_]+)\\s*\\]$");
         Pattern pAsignacion = Pattern.compile("^([a-zA-Z0-9_]+)\\s*=\\s*([a-zA-Z0-9_\\.]+)$");
@@ -73,8 +68,6 @@ public class HelloController {
             if (mBin.matches()) {
                 lista.add(new Instruccion(mBin.group(1), mBin.group(2), mBin.group(3), mBin.group(4)));
             } else if (mArr.matches()) {
-                // Truco: Guardamos los arreglos usando "[]" como si fuera un operador (+, *, etc)
-                // arg1 = nombre del arreglo, arg2 = el índice (para protegerlo de la muerte)
                 lista.add(new Instruccion(mArr.group(1), mArr.group(2), "[]", mArr.group(3)));
             } else if (mAsig.matches()) {
                 lista.add(new Instruccion(mAsig.group(1), mAsig.group(2), null, null));
@@ -85,12 +78,11 @@ public class HelloController {
         return lista;
     }
 
-    // 7.8.1 Eliminación de subexpresiones comunes (Incluye arreglos idénticos)
     private List<Instruccion> eliminarSubexpresionesComunes(List<Instruccion> instrucciones) {
         Map<String, String> expresiones = new HashMap<>();
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
-                String expr = inst.arg1 + inst.op + inst.arg2; // Ej. "a[]t2" o "b*m"
+                String expr = inst.arg1 + inst.op + inst.arg2;
                 String exprConmutativa = inst.arg2 + inst.op + inst.arg1;
 
                 if (expresiones.containsKey(expr)) {
@@ -109,7 +101,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.2 Propagación de copias
     private List<Instruccion> propagarCopias(List<Instruccion> instrucciones) {
         Map<String, String> copias = new HashMap<>();
         for (Instruccion inst : instrucciones) {
@@ -126,7 +117,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.3 Eliminación de código muerto (ESTRICTA, de abajo hacia arriba)
     private List<Instruccion> eliminarCodigoMuerto(List<Instruccion> instrucciones) {
         boolean cambio = true;
         while (cambio) {
@@ -157,7 +147,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.4 Cálculo previo de constantes
     private List<Instruccion> calculoPrevioConstantes(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null && isNumeric(inst.arg1) && isNumeric(inst.arg2)) {
@@ -174,7 +163,7 @@ public class HelloController {
                         if (v2 != 0) res = v1 / v2;
                         else evaluado = false;
                         break;
-                    default: evaluado = false; // Ignora los arreglos "[]"
+                    default: evaluado = false;
                 }
 
                 if (evaluado) {
@@ -191,7 +180,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // Transformaciones algebraicas expandidas
     private List<Instruccion> transformacionesAlgebraicas(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
@@ -200,14 +188,14 @@ public class HelloController {
                     else if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
                 } else if (inst.op.equals("-")) {
                     if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
-                    else if (inst.arg1.equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; } // x - x = 0
+                    else if (inst.arg1.equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
                 } else if (inst.op.equals("*")) {
                     if ("1".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; }
                     else if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
                     else if ("0".equals(inst.arg1) || "0".equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
                 } else if (inst.op.equals("/")) {
                     if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
-                    else if (inst.arg1.equals(inst.arg2) && !inst.arg1.equals("0")) { // m / m = 1
+                    else if (inst.arg1.equals(inst.arg2) && !inst.arg1.equals("0")) {
                         inst.arg1 = "1"; inst.op = null; inst.arg2 = null;
                     }
                 }
@@ -216,7 +204,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // Reducción de intensidad
     private List<Instruccion> reduccionIntensidad(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
@@ -261,7 +248,6 @@ public class HelloController {
         }
     }
 
-    // Clase auxiliar para gestionar el código de 3 direcciones
     class Instruccion {
         String res;
         String arg1;
@@ -283,11 +269,7 @@ public class HelloController {
         @Override
         public String toString() {
             if (textoOriginal != null) return textoOriginal;
-
-            // Reconstrucción especial si es un arreglo
             if ("[]".equals(op)) return res + "=" + arg1 + "[" + arg2 + "]";
-
-            // Reconstrucción normal
             if (op == null) return res + "=" + arg1;
             return res + "=" + arg1 + op + arg2;
         }
