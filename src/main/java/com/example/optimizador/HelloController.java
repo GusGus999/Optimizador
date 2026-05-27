@@ -182,19 +182,43 @@ public class HelloController {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
                 if (inst.op.equals("+")) {
-                    if ("0".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; }
-                    else if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
+                    if ("0".equals(inst.arg1)) {
+                        inst.arg1 = inst.arg2;
+                        inst.op = null;
+                        inst.arg2 = null;
+                    } else if ("0".equals(inst.arg2)) {
+                        inst.op = null;
+                        inst.arg2 = null;
+                    }
                 } else if (inst.op.equals("-")) {
-                    if ("0".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
-                    else if (inst.arg1.equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
+                    if ("0".equals(inst.arg2)) {
+                        inst.op = null;
+                        inst.arg2 = null;
+                    } else if (inst.arg1.equals(inst.arg2)) {
+                        inst.arg1 = "0"; inst.op = null;
+                        inst.arg2 = null;
+                    }
                 } else if (inst.op.equals("*")) {
-                    if ("1".equals(inst.arg1)) { inst.arg1 = inst.arg2; inst.op = null; inst.arg2 = null; }
-                    else if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
-                    else if ("0".equals(inst.arg1) || "0".equals(inst.arg2)) { inst.arg1 = "0"; inst.op = null; inst.arg2 = null; }
+                    if ("1".equals(inst.arg1)) {
+                        inst.arg1 = inst.arg2;
+                        inst.op = null;
+                        inst.arg2 = null;
+                    } else if ("1".equals(inst.arg2)) {
+                        inst.op = null;
+                        inst.arg2 = null;
+                    } else if ("0".equals(inst.arg1) || "0".equals(inst.arg2)) {
+                        inst.arg1 = "0";
+                        inst.op = null;
+                        inst.arg2 = null;
+                    }
                 } else if (inst.op.equals("/")) {
-                    if ("1".equals(inst.arg2)) { inst.op = null; inst.arg2 = null; }
-                    else if (inst.arg1.equals(inst.arg2) && !inst.arg1.equals("0")) {
-                        inst.arg1 = "1"; inst.op = null; inst.arg2 = null;
+                    if ("1".equals(inst.arg2)) {
+                        inst.op = null;
+                        inst.arg2 = null;
+                    } else if (inst.arg1.equals(inst.arg2) && !inst.arg1.equals("0")) {
+                        inst.arg1 = "1";
+                        inst.op = null;
+                        inst.arg2 = null;
                     }
                 }
             }
