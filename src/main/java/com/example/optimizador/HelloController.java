@@ -31,16 +31,15 @@ public class HelloController {
         List<Instruccion> instrucciones = parsear(codigo);
         boolean huboCambios = true;
 
-        // BUCLE MAESTRO: Da vueltas por TODAS las optimizaciones hasta que el código ya no cambie
         while (huboCambios) {
             String estadoAnterior = obtenerCodigoTexto(instrucciones);
 
-            instrucciones = calculoPrevioConstantes(instrucciones);
-            instrucciones = transformacionesAlgebraicas(instrucciones);
-            instrucciones = reduccionIntensidad(instrucciones);
             instrucciones = eliminarSubexpresionesComunes(instrucciones);
             instrucciones = propagarCopias(instrucciones);
             instrucciones = eliminarCodigoMuerto(instrucciones);
+            instrucciones = calculoPrevioConstantes(instrucciones);
+            instrucciones = transformacionesAlgebraicas(instrucciones);
+            instrucciones = reduccionIntensidad(instrucciones);
 
             String estadoNuevo = obtenerCodigoTexto(instrucciones);
             huboCambios = !estadoAnterior.equals(estadoNuevo);
@@ -48,7 +47,6 @@ public class HelloController {
 
         mostrarResultado(instrucciones);
     }
-
     private List<Instruccion> parsear(String codigo) {
         List<Instruccion> lista = new ArrayList<>();
         String[] lineas = codigo.split("\n");
