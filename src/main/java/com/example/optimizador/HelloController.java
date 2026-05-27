@@ -31,16 +31,15 @@ public class HelloController {
         List<Instruccion> instrucciones = parsear(codigo);
         boolean huboCambios = true;
 
-        // BUCLE MAESTRO
         while (huboCambios) {
             String estadoAnterior = obtenerCodigoTexto(instrucciones);
 
-            instrucciones = calculoPrevioConstantes(instrucciones);
-            instrucciones = transformacionesAlgebraicas(instrucciones);
-            instrucciones = reduccionIntensidad(instrucciones);
             instrucciones = eliminarSubexpresionesComunes(instrucciones);
             instrucciones = propagarCopias(instrucciones);
             instrucciones = eliminarCodigoMuerto(instrucciones);
+            instrucciones = calculoPrevioConstantes(instrucciones);
+            instrucciones = transformacionesAlgebraicas(instrucciones);
+            instrucciones = reduccionIntensidad(instrucciones);
 
             String estadoNuevo = obtenerCodigoTexto(instrucciones);
             huboCambios = !estadoAnterior.equals(estadoNuevo);
@@ -78,12 +77,17 @@ public class HelloController {
         return lista;
     }
 
-    // 7.8.1 Eliminación de subexpresiones comunes (CON INVALIDACIÓN)
     private List<Instruccion> eliminarSubexpresionesComunes(List<Instruccion> instrucciones) {
         Map<String, String> expresiones = new HashMap<>();
         for (Instruccion inst : instrucciones) {
+            if (inst.res != null) {
+                String modificada = inst.res;
+                expresiones.entrySet().removeIf(entry ->
+                        entry.getKey().matches(".*\\b" + Pattern.quote(modificada) + "\\b.*") ||
+                                entry.getValue().equals(modificada)
+                );
+            }
 
-            // 1. Unificar expresiones
             if (inst.op != null) {
                 String expr = inst.arg1 + inst.op + inst.arg2;
                 String exprConmutativa = inst.arg2 + inst.op + inst.arg1;
@@ -100,26 +104,13 @@ public class HelloController {
                     expresiones.put(expr, inst.res);
                 }
             }
-
-            // 2. INVALIDACIÓN DE ESTADO: Si la variable objetivo cambia de valor,
-            // olvidamos cualquier expresión que dependiera de ella.
-            if (inst.res != null) {
-                String modificada = inst.res;
-                expresiones.entrySet().removeIf(entry ->
-                        entry.getKey().matches(".*\\b" + Pattern.quote(modificada) + "\\b.*") ||
-                                entry.getValue().equals(modificada)
-                );
-            }
         }
         return instrucciones;
     }
 
-    // 7.8.2 Propagación de copias (CON INVALIDACIÓN)
     private List<Instruccion> propagarCopias(List<Instruccion> instrucciones) {
         Map<String, String> copias = new HashMap<>();
         for (Instruccion inst : instrucciones) {
-
-            // 1. Reemplazar si existen copias activas
             if (inst.arg1 != null && copias.containsKey(inst.arg1)) {
                 inst.arg1 = copias.get(inst.arg1);
             }
@@ -127,16 +118,12 @@ public class HelloController {
                 inst.arg2 = copias.get(inst.arg2);
             }
 
-            // 2. Actualizar estado e INVALIDAR si la variable cambia
             if (inst.res != null) {
                 String modificada = inst.res;
 
-                // Borramos la variable modificada porque ya no es copia de lo viejo
                 copias.remove(modificada);
-                // Si alguien dependía de esta variable, lo borramos también
                 copias.entrySet().removeIf(entry -> entry.getValue().equals(modificada));
 
-                // Si la instrucción actual es una copia nueva, la guardamos
                 if (inst.op == null && inst.arg1 != null) {
                     copias.put(modificada, inst.arg1);
                 }
@@ -145,7 +132,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.3 Eliminación de código muerto
     private List<Instruccion> eliminarCodigoMuerto(List<Instruccion> instrucciones) {
         boolean cambio = true;
         while (cambio) {
@@ -169,6 +155,10 @@ public class HelloController {
                     continue;
                 }
 
+                if (inst.res != null) {
+                    usadas.remove(inst.res);
+                }
+
                 if (inst.arg1 != null && !isNumeric(inst.arg1)) usadas.add(inst.arg1);
                 if (inst.arg2 != null && !isNumeric(inst.arg2)) usadas.add(inst.arg2);
             }
@@ -176,7 +166,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // 7.8.4 Cálculo previo de constantes
     private List<Instruccion> calculoPrevioConstantes(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null && isNumeric(inst.arg1) && isNumeric(inst.arg2)) {
@@ -210,7 +199,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // Transformaciones algebraicas
     private List<Instruccion> transformacionesAlgebraicas(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
@@ -235,7 +223,6 @@ public class HelloController {
         return instrucciones;
     }
 
-    // Reducción de intensidad
     private List<Instruccion> reduccionIntensidad(List<Instruccion> instrucciones) {
         for (Instruccion inst : instrucciones) {
             if (inst.op != null) {
